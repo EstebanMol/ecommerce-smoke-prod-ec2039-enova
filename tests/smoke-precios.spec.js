@@ -7,6 +7,9 @@
  * en lugar del precio real del producto.
  */
 
+require('dotenv').config();
+const { notificarError } = require('./helpers/notificaciones');
+
 const { test, expect } = require('@playwright/test');
 const { validarPrecio, validarPrecios } = require('./helpers/priceValidator');
 
@@ -158,6 +161,14 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
           path: `playwright-report/precios-rotos-${pagina.nombre.toLowerCase()}.png`,
           fullPage: false,
         });
+
+        await notificarError({
+        titulo: `Precios inválidos en categoría ${pagina.nombre}`,
+        mensaje: `Se encontraron ${reporte.invalidos} precio(s) inválido(s)`,
+        detalles: reporte.detalle
+          .filter((r) => !r.valid)
+          .map((r) => `${r.precio} → ${r.errores.join(', ')}`),
+        });
       }
 
       // ── Assertions ──────────────────────────────────────────────────────
@@ -266,6 +277,15 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
       await page.screenshot({
         path: 'playwright-report/bug-precios-overflow.png',
         fullPage: true,
+      });
+
+       // 🔔 Enviar alerta por email
+      await notificarError({
+        titulo: 'Bug de precios rotos detectado en producción',
+        mensaje: `Se encontraron ${preciosRotos.length} precio(s) con overflow en la Home`,
+        detalles: preciosRotos.map(
+          (p) => `"${p.texto.substring(0, 60)}..." (${p.longitud} caracteres) — clase: ${p.padre}`
+        ),
       });
     }
 
