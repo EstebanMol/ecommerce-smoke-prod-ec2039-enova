@@ -1,5 +1,35 @@
 @echo off
 
+chcp 65001 > nul
+
+title Smoke Monitoring Ecommerce
+
 cd /d E:\Sistemas\ecommerce-smoke
 
-npx playwright test >> smoke-log.txt 2>&1
+echo ==================================
+echo INICIANDO SMOKE TEST
+echo %date% %time%
+echo ==================================
+
+echo. > smoke-last.log
+
+powershell "npx playwright test 2>&1 | Tee-Object -FilePath smoke-last.log"
+
+echo. >> smoke-history.log
+echo ================================== >> smoke-history.log
+echo INICIO TEST: %date% %time% >> smoke-history.log
+echo ================================== >> smoke-history.log
+
+type smoke-last.log >> smoke-history.log
+
+echo ================================== >> smoke-history.log
+echo FIN TEST: %date% %time% >> smoke-history.log
+echo ================================== >> smoke-history.log
+
+echo.
+echo ==================================
+echo SMOKE TEST FINALIZADO
+echo %date% %time%
+echo ==================================
+
+pause
