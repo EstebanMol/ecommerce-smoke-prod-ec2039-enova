@@ -12,6 +12,7 @@
     "@playwright/test": "^1.44.0"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "dotenv": "^17.4.2",
     "nodemailer": "^8.0.7"
   }

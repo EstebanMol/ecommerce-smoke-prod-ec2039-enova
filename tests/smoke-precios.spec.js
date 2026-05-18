@@ -112,7 +112,7 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
 
   // ── Test 2: Validar precios en todas las páginas del catálogo ────────────
   for (const pagina of PAGINAS) {
-    test(`Precios correctos en: ${pagina.nombre} (${pagina.path})`, async ({ page }) => {
+    test(`Precios correctos en: ${pagina.nombre}`, async ({ page }, testInfo) => {
       await page.goto(pagina.path, { waitUntil: 'domcontentloaded' });
 
       // Scroll progresivo para disparar lazy loading
@@ -162,13 +162,16 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
           fullPage: false,
         });
 
-        await notificarError({
-        titulo: `Precios inválidos en categoría ${pagina.nombre}`,
-        mensaje: `Se encontraron ${reporte.invalidos} precio(s) inválido(s)`,
-        detalles: reporte.detalle
-          .filter((r) => !r.valid)
-          .map((r) => `${r.precio} → ${r.errores.join(', ')}`),
-        });
+        if (testInfo.retry === 0) {
+          await notificarError({
+            titulo: `Precios inválidos en categoría ${pagina.nombre}`,
+            mensaje: `Se encontraron ${reporte.invalidos} precio(s) inválido(s)`,
+            detalles: reporte.detalle
+              .filter((r) => !r.valid)
+              .map((r) => `${r.precio} → ${r.errores.join(', ')}`),
+            screenshotPath: `playwright-report/precios-rotos-${pagina.nombre.toLowerCase()}.png`,
+          });
+        }
       }
 
       // ── Assertions ──────────────────────────────────────────────────────
