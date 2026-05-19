@@ -87,6 +87,7 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
 
     const erroresConsola = [];
     const recursos404 = [];
+    const requestsFallidas = [];
 
     // Captura URLs reales de recursos que fallan
     page.on('response', (resp) => {
@@ -95,21 +96,38 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
       }
     });
 
+    page.on('requestfailed', request => {
+      requestsFallidas.push({
+      url: request.url(),
+      error: request.failure()?.errorText
+      });
+    });
+
+
     // Captura errores JS (sin URLs, el browser no las incluye)
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') erroresConsola.push(msg.text());
+    page.on('console', msg => {
+     if (msg.type() === 'error') {
+       erroresConsola.push(msg.text());
+     }
     });
 
     const response = await page.goto('/', { waitUntil: 'domcontentloaded' });
     expect(response.status(), 'El sitio debe responder con HTTP 200').toBe(200);
 
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(8000);
 
     // Mostrar 404s CON URL (del listener de response)
     console.log(`\nRecursos con 404: ${recursos404.length}`);
     if (recursos404.length > 0) {
       console.log('Detalle de 404s:');
       recursos404.forEach((url, i) => console.log(`  ${i + 1}. ${url}`));
+    }
+
+    // Mostrar requests fallidas (CORS, ERR_FAILED)
+    console.log(`\nRequests fallidas: ${requestsFallidas.length}`);
+    if (requestsFallidas.length > 0) {
+      console.log('Detalle:');
+      requestsFallidas.forEach((r, i) => console.log(`  ${i + 1}. [${r.error}] ${r.url}`));
     }
 
     // Mostrar errores JS (sin URL, limitación del browser)
