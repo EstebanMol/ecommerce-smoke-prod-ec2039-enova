@@ -95,11 +95,20 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
     });
 
     // Recursos que fallan al cargar (404, 500, etc.)
-    page.on('response', (resp) => {
-      if (resp.status() === 404) {
-        recursos404.push(resp.url());
+    page.on('response', (response) => {
+      if (response.status() === 404) {
+        recursos404.push({
+          url: response.url(),
+          status: response.status(),
+        });
       }
     });
+
+    await page.waitForTimeout(5000);
+
+
+    const response = await page.goto('/', { waitUntil: 'domcontentloaded' });
+    expect(response.status(), 'El sitio debe responder con HTTP 200').toBe(200);
 
 
     // Captura errores JS (sin URLs, el browser no las incluye)
@@ -108,12 +117,6 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
        erroresConsola.push(msg.text());
      }
     });
-
-    await page.waitForTimeout(8000);
-
-    const response = await page.goto('/', { waitUntil: 'domcontentloaded' });
-    expect(response.status(), 'El sitio debe responder con HTTP 200').toBe(200);
-
    
     // Mostrar 404s CON URL (del listener de response)
     console.log(`\nRecursos con 404: ${recursos404.length}`);
