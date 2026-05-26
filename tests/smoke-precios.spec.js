@@ -29,10 +29,10 @@ const SELECTORS = {
 // ─── Páginas a testear ───────────────────────────────────────────────────────
 const PAGINAS = [
   { nombre: 'Home', path: '/' },
-  { nombre: 'Televisores', path: '/categories/60983488-fd4d-44a3-a790-e3c243fabbc0' },
-  { nombre: 'Lavado', path: '/categories/74845a0b-1bab-4812-b7f0-9ff20b68dc5b' },
-  { nombre: 'Heladeras', path: '/categories/62560f36-70a1-4c1a-9dc3-2ddd69626ce6' },
-  { nombre: 'Aire Acondicionado', path: '/categories/19a4181e-e6ae-4d45-8723-41b5f661d48d' },
+  { nombre: 'TV', path: '/categories/962b9949-c7e2-4a1e-b4f8-837bc9ecc58d' },
+  { nombre: 'Lavarropas', path: '/categories/74845a0b-1bab-4812-b7f0-9ff20b68dc5b' },
+  { nombre: 'Microondas', path: '/categories/cc642452-7fb5-4d26-8d74-736c775576a6' },
+  { nombre: 'Celulares', path: '/categories/232a9297-4018-4ad6-8b6b-2e40a3455968' },
 ];
 
 // ─── Helper: extraer precios visibles de la página ──────────────────────────
@@ -49,7 +49,7 @@ const PAGINAS = [
           // El <a> envuelve toda la tarjeta, subimos hasta encontrarlo
           const linkEl = el.closest('a');
           const url = linkEl
-            ? `https://pipe.store${linkEl.getAttribute('href')}`
+            ? `https://ecommerce-fob-app.dev.phinxlabcore.com${linkEl.getAttribute('href')}`
             : 'URL no encontrada';
 
           resultados.push({ precio: primeraLinea, url });
@@ -80,7 +80,7 @@ async function marcarPreciosRotos(page, selector) {
 // TEST SUITE PRINCIPAL
 // ════════════════════════════════════════════════════════════════════════════
 
-test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
+test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () => {
 
   //-- Test 1
    test('El sitio carga sin errores críticos', async ({ page }, testInfo) => {
@@ -88,10 +88,14 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
       const erroresConsola = [];
       const recursos404 = [];
 
-      // Listeners ANTES del goto
+     // solo 404
       page.on('response', (resp) => {
         if (resp.status() === 404) {
-          recursos404.push(resp.url());
+          // Solo capturar 404s del backend propio, ignorar terceros
+          if (resp.url().includes('phinxlabcore.com')) {
+            recursos404.push(resp.url());
+            console.warn(`⚠️ 404 detectado: ${resp.url()}`);
+          }
         }
       });
 
@@ -105,6 +109,7 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
 
       // Esperar que carguen todos los recursos
       await page.waitForTimeout(8000);
+      
 
       // Mostrar 404s
       console.log(`\nRecursos con 404: ${recursos404.length}`);
@@ -124,7 +129,7 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store', () => {
       if (recursos404.length > 0 && testInfo.retry === 0) {
         await notificarError({
           titulo: `${recursos404.length} recursos con error 404`,
-          mensaje: 'Se detectaron recursos no encontrados en pipe.store',
+          mensaje: 'Se detectaron recursos no encontrados en pipe.store DEV',
           detalles: recursos404.map(url => `<a href="${url}">${url}</a>`),
         });
       }
