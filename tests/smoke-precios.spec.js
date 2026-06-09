@@ -290,7 +290,7 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
   }
 
   // ── Test 3: Validar precio en página de detalle de producto ─────────────
-  test('Precio correcto en página de detalle de producto', async ({ page }) => {
+  test('Precio correcto en página de detalle de producto', async ({ page }, testInfo) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
@@ -332,6 +332,20 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
       .filter((r) => !r.valid)
       .map((r) => `"${r.precio}" → ${r.errores.join(', ')}`)
       .join('\n');
+
+    if (reporte.invalidos > 0 && testInfo.retry === 0) {
+      try {
+        await notificarError({
+          titulo: 'Precio inválido en página de detalle de producto',
+          mensaje: `Se encontraron ${reporte.invalidos} precio(s) inválido(s) en el detalle`,
+          detalles: reporte.detalle
+            .filter((r) => !r.valid)
+            .map((r) => `${r.precio} → ${r.errores.join(', ')}`),
+        });
+      } catch (e) {
+        console.error('⚠️  Error al enviar notificación (test 3):', e.message);
+      }
+    }
 
     expect(
       reporte.invalidos,
@@ -376,13 +390,17 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
         fullPage: true,
       });
 
-      await notificarError({
-        titulo: 'Bug de precios rotos detectado en producción',
-        mensaje: `Se encontraron ${preciosRotos.length} precio(s) con overflow en la Home`,
-        detalles: preciosRotos.map(
-          (p) => `"${p.texto.substring(0, 60)}..." (${p.longitud} caracteres) — clase: ${p.padre}`
-        ),
-      });
+      try {
+        await notificarError({
+          titulo: 'Bug de precios rotos detectado en producción',
+          mensaje: `Se encontraron ${preciosRotos.length} precio(s) con overflow en la Home`,
+          detalles: preciosRotos.map(
+            (p) => `"${p.texto.substring(0, 60)}..." (${p.longitud} caracteres) — clase: ${p.padre}`
+          ),
+        });
+      } catch (e) {
+        console.error('⚠️  Error al enviar notificación (test 4):', e.message);
+      }
     }
 
     expect(
@@ -397,6 +415,34 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
   // ════════════════════════════════════════════════════════════════════════
 
   test.describe('💳 Formas de pago y cuotas en página de detalle', () => {
+
+    // ── Notificación de fallo garantizada ────────────────────────────────────
+    // Se ejecuta después de cada test. Si el test falló Y es el primer intento,
+    // envía un mail con el título del test y el mensaje de error.
+    // Esto cubre cualquier fallo inesperado (timeout, excepción, expect) que
+    // ocurra ANTES de que el bloque inline de notificación llegue a ejecutarse.
+    test.afterEach(async ({}, testInfo) => {
+      if (testInfo.status !== 'failed') return;
+      if (testInfo.retry !== 0) return;
+
+      const errorMsg = testInfo.errors
+        .map((e) => (e.message || String(e)).split('\n')[0].substring(0, 200))
+        .join(' | ');
+
+      try {
+        await notificarError({
+          titulo: `Test fallido: ${testInfo.title}`,
+          mensaje: 'El test falló durante la ejecución automática.',
+          detalles: [
+            `Test: ${testInfo.title}`,
+            `Error: ${errorMsg}`,
+            `Duración: ${(testInfo.duration / 1000).toFixed(1)}s`,
+          ],
+        });
+      } catch (e) {
+        console.error('⚠️  Error al enviar notificación en afterEach:', e.message);
+      }
+    });
 
     // ── Fixture compartido: navega al detalle e intercepta el endpoint ──────
     // Usamos test.beforeEach implícito via helper para no repetir navegación.
@@ -486,16 +532,20 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
           path: 'playwright-report/sin-cuotas-configuradas.png',
           fullPage: false,
         });
-        await notificarError({
-          titulo: 'CA #1 fallido — Ninguna forma de pago tiene cuotas configuradas',
+        try {
+          await notificarError({
+            titulo: 'CA #1 fallido — Ninguna forma de pago tiene cuotas configuradas',
           mensaje: `El producto ${productId} no muestra ninguna promoción con más de 1 cuota.`,
           detalles: [
             `Promos detectadas en DOM: ${promos.length}`,
             ...promos.map((p) => `• ${p.textoCompleto}`),
             promos.length === 0 ? '⚠️ El bloque de promos estaba vacío.' : '',
           ].filter(Boolean),
-          screenshotPath: 'playwright-report/sin-cuotas-configuradas.png',
-        });
+            screenshotPath: 'playwright-report/sin-cuotas-configuradas.png',
+          });
+        } catch (e) {
+          console.error('⚠️  Error al enviar notificación (test 5):', e.message);
+        }
       }
 
       expect(
@@ -550,8 +600,9 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
           path: 'playwright-report/sin-intereses-configurados.png',
           fullPage: false,
         });
-        await notificarError({
-          titulo: 'CA #2 fallido — Ninguna forma de pago tiene intereses configurados',
+        try {
+          await notificarError({
+            titulo: 'CA #2 fallido — Ninguna forma de pago tiene intereses configurados',
           mensaje: `El producto ${productId} no muestra ninguna promoción con interés.\n` +
             `Si la política comercial es operar 100% sin interés, este test debe marcarse como skip.`,
           detalles: [
@@ -561,8 +612,11 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
             '─────────────────',
             ...promos.map((p) => `• [${p.sinInteres ? 'sin interés' : 'con interés'}] ${p.textoCompleto}`),
           ],
-          screenshotPath: 'playwright-report/sin-intereses-configurados.png',
-        });
+            screenshotPath: 'playwright-report/sin-intereses-configurados.png',
+          });
+        } catch (e) {
+          console.error('⚠️  Error al enviar notificación (test 6):', e.message);
+        }
       }
 
       expect(
@@ -663,11 +717,15 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
           inconsistenciasDom.forEach((i) => console.error(`     → ${i}`));
 
           if (testInfo.retry === 0) {
-            await notificarError({
-              titulo: 'Inconsistencia en cuotas sin interés',
+            try {
+              await notificarError({
+                titulo: 'Inconsistencia en cuotas sin interés',
               mensaje: `El monto por cuota no coincide con el precio total en el producto ${productId}`,
-              detalles: inconsistenciasDom,
-            });
+                detalles: inconsistenciasDom,
+              });
+            } catch (e) {
+              console.error('⚠️  Error al enviar notificación (test 7 DOM):', e.message);
+            }
           }
 
           expect(
@@ -763,11 +821,15 @@ test.describe('🔥 Smoke Test — Validación de precios pipe.store DEV', () =>
       }
 
       if (inconsistencias.length > 0 && testInfo.retry === 0) {
-        await notificarError({
-          titulo: 'Inconsistencia cuotas frontend ↔ backend',
+        try {
+          await notificarError({
+            titulo: 'Inconsistencia cuotas frontend ↔ backend',
           mensaje: `El producto ${productId} tiene discrepancias en la leyenda de intereses`,
-          detalles: inconsistencias,
-        });
+            detalles: inconsistencias,
+          });
+        } catch (e) {
+          console.error('⚠️  Error al enviar notificación (test 7 backend):', e.message);
+        }
       }
 
       expect(
