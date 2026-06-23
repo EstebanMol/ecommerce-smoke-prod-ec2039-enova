@@ -33,10 +33,10 @@ const SELECTORS = {
 // ─── Páginas a testear ───────────────────────────────────────────────────────
 const PAGINAS = [
   { nombre: 'Home', path: '/' },
-  { nombre: 'TV', path: '/categories/60983488-fd4d-44a3-a790-e3c243fabbc0' },
+  { nombre: 'TV', path: '/categories/962b9949-c7e2-4a1e-b4f8-837bc9ecc58d' },
   { nombre: 'Lavado', path: '/categories/74845a0b-1bab-4812-b7f0-9ff20b68dc5b' },
-  { nombre: 'Notebooks', path: '/categories/8f8eb81b-7149-45e8-8820-8789f889d265' },
-  { nombre: 'Celulares', path: '/categories/a85d3890-3925-475a-a67a-a37f0308b665' },
+  { nombre: 'Notebooks', path: '/categories/663b3f19-01f1-470a-aee0-1dad98a035e3' },
+  { nombre: 'Celulares', path: '/categories/232a9297-4018-4ad6-8b6b-2e40a3455968' },
 ];
 
 // ─── Helper: extraer precios visibles de la página ──────────────────────────
